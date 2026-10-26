@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ModelDefinition, ModelKey } from "@/lib/bedrock/types";
-import type { ApiResponse, ChatMessage } from "@/types";
+import type { ApiResponse, ChatMessage, SourceCitation, TicketSummary } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -40,12 +40,14 @@ const starterMessage: ChatMessage = {
 export function ChatWindow({ models }: { models: Omit<ModelDefinition, "envVar">[] }) {
   const defaultKey = (models.find((model) => model.key === "claude-sonnet-5-5")?.key ?? models[0].key) as ModelKey;
   const [modelKey, setModelKey] = useState<ModelKey>(defaultKey);
+  const [conversationId, setConversationId] = useState<string>(() => crypto.randomUUID());
   const [messages, setMessages] = useState<ChatMessage[]>([starterMessage]);
   const [pending, setPending] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const lastUserMessage = useMemo(() => [...messages].reverse().find((message) => message.role === "user")?.content, [messages]);
 
   function newConversation() {
+    setConversationId(crypto.randomUUID());
     setMessages([starterMessage]);
     setSidebarOpen(false);
   }
@@ -73,12 +75,22 @@ export function ChatWindow({ models }: { models: Omit<ModelDefinition, "envVar">
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: content, modelKey }),
+        body: JSON.stringify({ conversationId, message: content, modelKey }),
       });
-      const result = (await response.json()) as ApiResponse<{ message: string }>;
+      const result = (await response.json()) as ApiResponse<{
+        message: string;
+        citations?: SourceCitation[];
+        ticket?: TicketSummary;
+      }>;
       if (!result.ok) throw new Error(result.error.message);
       setMessages((current) => current.map((message) => message.id === pendingId
-        ? { ...message, content: result.data.message, state: "complete" }
+        ? {
+            ...message,
+            content: result.data.message,
+            citations: result.data.citations,
+            ticket: result.data.ticket,
+            state: "complete",
+          }
         : message));
     } catch (error) {
       setMessages((current) => current.map((message) => message.id === pendingId

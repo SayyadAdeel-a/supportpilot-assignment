@@ -6,5 +6,5 @@ export interface PolicyPassage extends SourceCitation {
 }
 
 export interface PolicyRetriever {
-  retrieve(query: string, options?: { limit?: number }): Promise<PolicyPassage[]>;
+  retrieve(query: string, options?: { limit?: number; minScore?: number }): Promise<PolicyPassage[]>;
 }

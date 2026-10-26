@@ -1,4 +1,4 @@
-import type { SourceCitation } from "@/types";
+import type { SourceCitation, TicketSummary } from "@/types";
 
 export type ModelKey =
   | "claude-opus-4-8"
@@ -37,6 +37,7 @@ export interface AgentRequest {
 export interface AgentResponse {
   message: string;
   citations: SourceCitation[];
+  ticket?: TicketSummary;
 }
 
 export interface BedrockConversePort {
